@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+from datetime import datetime
 
 # Configuración de la página
 st.set_page_config(
@@ -40,21 +41,21 @@ st.markdown("""
 # ----------------- BARRA LATERAL -----------------
 try:
     st.sidebar.image("logoram.png", width=180)
-except:
-    pass  # Si por algo no carga el logo, la app sigue funcionando sin error
+except Exception:
+    pass  # Si hay algún problema con la imagen, la app sigue funcionando
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🏢 Panel RAM Deportes")
 st.sidebar.info("Herramienta automatizada de monitoreo y búsqueda de licitaciones deportivas en Mercado Público.")
 
-# Ticket fijo en el código para que no falle en la nube
-ticket_api = "0D0F031C-DBFF-4D34-A874-4A1C954A7CB9"
+# Ticket API fijo para evitar fallos en la nube
+TICKET_API = "0D0F031C-DBFF-4D34-A874-4A1C954A7CB9"
 
 # ----------------- CUERPO PRINCIPAL -----------------
 st.markdown('<p class="main-header">🏆 Sistema de Gestión de Licitaciones - RAM Deportes</p>', unsafe_allow_html=True)
 st.markdown("Busca y filtra en tiempo real oportunidades de negocios con el Estado en el rubro deportivo.")
 
-# Pestañas para organizar la interfaz de forma profesional
+# Pestañas para organizar la interfaz
 tab1, tab2 = st.tabs(["🔍 Buscador Activo", "📊 Estado del Sistema"])
 
 with tab1:
@@ -62,46 +63,47 @@ with tab1:
     
     col1, col2 = st.columns(2)
     with col1:
-        palabra_clave = st.text_input("Palabra clave (ej. padel, futbol, deporte)", value="deporte")
+        palabra_clave = st.text_input("Palabra clave (ej. padel, futbol, deporte, uniforme)", value="deporte")
     with col2:
-        fecha_busqueda = st.date_input("Fecha de publicación")
+        # Fecha por defecto la de hoy formateada correctamente como DD-MM-YYYY
+        fecha_seleccionada = st.date_input("Fecha de publicación", value=datetime.now())
 
     if st.button("Buscar Licitaciones en Mercado Público"):
         with st.spinner("Conectando con la API de ChileCompra..."):
             try:
-                # URL oficial de la API de ChileCompra por fecha
-                fecha_str = fecha_busqueda.strftime("%d-%m-%Y")
-                url = f"https://api.mercadopublico.cl/servicios/v1/publico/licitaciones.json?fecha={fecha_str}&ticket={ticket_api}"
+                # Formato exacto que pide la API de Mercado Público: DD-MM-YYYY
+                fecha_str = fecha_seleccionada.strftime("%d-%m-%Y")
+                url = f"https://api.mercadopublico.cl/servicios/v1/publico/licitaciones.json?fecha={fecha_str}&ticket={TICKET_API}"
                 
-                response = requests.get(url)
+                response = requests.get(url, timeout=10)
                 
                 if response.status_code == 200:
                     data = response.json()
                     licitaciones = data.get("Listado", [])
                     
-                    # Filtrar por palabra clave ingresada
+                    # Filtrar por palabra clave ingresada por el usuario
                     filtradas = [
                         l for l in licitaciones 
                         if palabra_clave.lower() in l.get("Nombre", "").lower() 
                         or palabra_clave.lower() in l.get("Descripcion", "").lower()
                     ]
                     
-                    st.success(f"¡Consulta exitosa! Se encontraron {len(filtradas)} licitaciones coincidentes.")
-                    
                     if filtradas:
+                        st.success(f"¡Éxito! Se encontraron {len(filtradas)} licitaciones para '{palabra_clave}' en la fecha {fecha_str}.")
                         for lic in filtradas:
-                            with st.expander(f"📦 {lic.get('Nombre', 'Sin nombre')} (Código: {lic.get('Codigo')})"):
+                            with st.expander(f"📦 {lic.get('Nombre', 'Sin nombre')} (Código: {lic.get('CodigoObra', lic.get('Codigo'))})"):
                                 st.write(f"**Descripción:** {lic.get('Descripcion', 'No disponible')}")
                                 st.write(f"**Estado:** {lic.get('Estado')}")
                                 st.write(f"**Fecha de Cierre:** {lic.get('FechaCierre')}")
                                 codigo_lic = lic.get('Codigo')
-                                st.markdown(f"[🔗 Ver ficha oficial en Mercado Público](https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?qs={codigo_lic})")
+                                if codigo_lic:
+                                    st.markdown(f"[🔗 Ver ficha oficial en Mercado Público](https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?qs={codigo_lic})")
                     else:
-                        st.warning("No se encontraron licitaciones con esa palabra clave para la fecha seleccionada.")
+                        st.warning(f"La API respondió correctamente, pero no hay licitaciones que incluyan la palabra '{palabra_clave}' para la fecha {fecha_str}. Prueba seleccionando otra fecha reciente (como ayer) o cambiando la palabra clave.")
                 else:
-                    st.error("Error al conectar con la API de Mercado Público. Revisa tu Ticket API.")
+                    st.error(f"La API de Mercado Público retornó un código de estado {response.status_code}. Inténtalo nuevamente en unos minutos.")
             except Exception as e:
-                st.error(f"Ocurrió un error inesperado: {e}")
+                st.error(f"Ocurrió un error de conexión: {e}")
 
 with tab2:
     st.subheader("Estado Operativo")
