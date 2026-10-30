@@ -38,7 +38,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------- BARRA LATERAL -----------------
-st.sidebar.image("logo.png", width=180)  # Carga el logo si lo subes a GitHub como logo.png
+st.sidebar.image("logoram.png", width=180)  # Carga el logo si lo subes a GitHub como logo.png
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🏢 Panel RAM Deportes")
 st.sidebar.info("Herramienta automatizada de monitoreo y búsqueda de licitaciones de artículos deportivos en Mercado Público (ChileCompra).")
