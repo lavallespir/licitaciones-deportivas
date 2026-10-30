@@ -38,12 +38,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------- BARRA LATERAL -----------------
-st.sidebar.image("logoram.png", width=180)  # Carga el logo si lo subes a GitHub como logo.png
+try:
+    st.sidebar.image("logoram.png", width=180)
+except:
+    pass  # Si por algo no carga el logo, la app sigue funcionando sin error
+
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🏢 Panel RAM Deportes")
-st.sidebar.info("Herramienta automatizada de monitoreo y búsqueda de licitaciones de artículos deportivos en Mercado Público (ChileCompra).")
+st.sidebar.info("Herramienta automatizada de monitoreo y búsqueda de licitaciones deportivas en Mercado Público.")
 
-ticket_api = st.sidebar.text_input("Ticket API ChileCompra", value="0D0F031C-DBFF-4D34-A874-4A1C954A7CB9", type="password")
+# Ticket fijo en el código para que no falle en la nube
+ticket_api = "0D0F031C-DBFF-4D34-A874-4A1C954A7CB9"
 
 # ----------------- CUERPO PRINCIPAL -----------------
 st.markdown('<p class="main-header">🏆 Sistema de Gestión de Licitaciones - RAM Deportes</p>', unsafe_allow_html=True)
