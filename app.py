@@ -42,20 +42,19 @@ st.markdown("""
 try:
     st.sidebar.image("logoram.png", width=180)
 except Exception:
-    pass  # Si hay algún problema con la imagen, la app sigue funcionando
+    pass
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🏢 Panel RAM Deportes")
 st.sidebar.info("Herramienta automatizada de monitoreo y búsqueda de licitaciones deportivas en Mercado Público.")
 
-# Ticket API fijo para evitar fallos en la nube
+# Ticket API fijo
 TICKET_API = "0D0F031C-DBFF-4D34-A874-4A1C954A7CB9"
 
 # ----------------- CUERPO PRINCIPAL -----------------
 st.markdown('<p class="main-header">🏆 Sistema de Gestión de Licitaciones - RAM Deportes</p>', unsafe_allow_html=True)
 st.markdown("Busca y filtra en tiempo real oportunidades de negocios con el Estado en el rubro deportivo.")
 
-# Pestañas para organizar la interfaz
 tab1, tab2 = st.tabs(["🔍 Buscador Activo", "📊 Estado del Sistema"])
 
 with tab1:
@@ -65,23 +64,25 @@ with tab1:
     with col1:
         palabra_clave = st.text_input("Palabra clave (ej. padel, futbol, deporte, uniforme)", value="deporte")
     with col2:
-        # Fecha por defecto la de hoy formateada correctamente como DD-MM-YYYY
         fecha_seleccionada = st.date_input("Fecha de publicación", value=datetime.now())
 
     if st.button("Buscar Licitaciones en Mercado Público"):
         with st.spinner("Conectando con la API de ChileCompra..."):
             try:
-                # Formato exacto que pide la API de Mercado Público: DD-MM-YYYY
                 fecha_str = fecha_seleccionada.strftime("%d-%m-%Y")
                 url = f"https://api.mercadopublico.cl/servicios/v1/publico/licitaciones.json?fecha={fecha_str}&ticket={TICKET_API}"
                 
-                response = requests.get(url, timeout=10)
+                # Encabezados para simular un navegador y evitar el bloqueo del servidor estatal
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                
+                response = requests.get(url, headers=headers, timeout=15)
                 
                 if response.status_code == 200:
                     data = response.json()
                     licitaciones = data.get("Listado", [])
                     
-                    # Filtrar por palabra clave ingresada por el usuario
                     filtradas = [
                         l for l in licitaciones 
                         if palabra_clave.lower() in l.get("Nombre", "").lower() 
@@ -99,7 +100,7 @@ with tab1:
                                 if codigo_lic:
                                     st.markdown(f"[🔗 Ver ficha oficial en Mercado Público](https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?qs={codigo_lic})")
                     else:
-                        st.warning(f"La API respondió correctamente, pero no hay licitaciones que incluyan la palabra '{palabra_clave}' para la fecha {fecha_str}. Prueba seleccionando otra fecha reciente (como ayer) o cambiando la palabra clave.")
+                        st.warning(f"La conexión fue exitosa, pero no hay licitaciones con la palabra '{palabra_clave}' para la fecha {fecha_str}. Prueba seleccionando otra fecha.")
                 else:
                     st.error(f"La API de Mercado Público retornó un código de estado {response.status_code}. Inténtalo nuevamente en unos minutos.")
             except Exception as e:
